@@ -162,7 +162,6 @@ module Radius
           end
         else
           type = @dict.attr_numtype(tval)
-          puts type
           raise "Garbled attribute #{tval}" if (type == nil)
           val = case type
                 when 'string' then value
@@ -476,15 +475,11 @@ module Radius
     # ====Return
     # The string representation of the RADIUS packet.
     #
-    def to_s(secret)
+    def to_s
       str = "RAD-Code = #{@code}\n"
       str += "RAD-Identifier = #{@identifier}\n"
       str += "RAD-Authenticator = #{[@authenticator].pack('m')}"
-      each {
-        |attr, val|
-        if (attr == 'User-Password')
-          val = (secret == nil) ? "(hidden)" : password(secret)
-        end
+      each { |attr, val|
         str += "#{attr} = #{val}\n"
       }
 

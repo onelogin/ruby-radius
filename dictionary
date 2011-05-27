@@ -231,9 +231,10 @@ VALUE                Framed-Compression        Van-Jacobsen-TCP-IP        1
 #
 VENDORATTR        9        cisco-avpair        1        string
 
-# This is a fake attribute to demonstrate how to write named-value
-# attributes.
-VENDORATTR        1        ibm-enum        254        integer
-VENDORVALUE        1        ibm-enum        value-1        1
-VENDORVALUE        1        ibm-enum        value-2        2
-VENDORVALUE        1        ibm-enum        value-3        3
+# Aruba attributes
+VENDORATTR  14823       Aruba-User-Role                         1       string
+VENDORATTR  14823       Aruba-User-Vlan                         2       integer
+VENDORATTR  14823       Aruba-Priv-Admin-User                   3       integer
+VENDORATTR  14823       Aruba-Admin-Role                        4       string
+VENDORATTR  14823       Aruba-Essid-Name                        5       string
+VENDORATTR  14823       Aruba-Location-Id                       6       string

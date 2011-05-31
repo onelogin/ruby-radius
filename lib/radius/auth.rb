@@ -92,7 +92,6 @@ module Radius
       return(@packet.code == 'Access-Accept')
     end
 
-    protected
     # Generate an authenticator, placing it in the @packet object's
     # authenticator attribute.  It will try to use /dev/urandom if
     # possible, or the system rand call if that's not available.

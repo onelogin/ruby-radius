@@ -4,6 +4,7 @@ Gem::Specification.new do |s|
   s.version     = 1.0
   s.summary     = ""
   s.description = ""
+  s.authors     = ["Rafael 'Dido' Sevilla"]
 
   s.required_ruby_version = '>= 1.8.7'
 

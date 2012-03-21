@@ -218,6 +218,7 @@ module Radius
               when "ipaddr" then [inet_aton(value)].pack("N")
               when "date" then [value].pack("N")
               when "time" then [value].pack("N")
+              when "octets" then [value].pack("N")
               else
                 next
               end
@@ -237,7 +238,9 @@ module Radius
                when "ipaddr" then inet_aton(datum)
                when "time" then [datum].pack("N")
                when "date" then [datum].pack("N")
-               else next
+               when "octets" then [value].pack("N")
+               else
+                 next
                end
         if vendor == 429
           # For 3COM devices

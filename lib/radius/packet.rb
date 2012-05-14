@@ -214,7 +214,7 @@ module Radius
               when "string" then value
               when "integer"
                 [@dict.attr_has_val(anum) ?
-            @dict.val_num(anum, value) : value].pack("N")
+            @dict.val_num(anum, value) ? @dict.val_num(anum, value) : value : value].pack("N")
               when "ipaddr" then [inet_aton(value)].pack("N")
               when "date" then [value].pack("N")
               when "time" then [value].pack("N")

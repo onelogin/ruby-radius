@@ -123,12 +123,12 @@ module Radius
 
       unset_all
 
-      while (attrdat.length > 0)
+      while attrdat.length > 0
         length = attrdat.unpack("xC")[0].to_i
         tval, value = attrdat.unpack("Cxa#{length-2}")
 
         tval = tval.to_i
-        if (tval == VSA_TYPE)
+        if tval == VSA_TYPE
           # handle vendor-specific attributes
           vid, vtype, vlength = value.unpack("NCC")
           # XXX - How do we calculate the length of the VSA?  It's not
@@ -162,20 +162,21 @@ module Radius
           end
         else
           type = @dict.attr_numtype(tval)
-          raise "Garbled attribute #{tval}" if (type == nil)
-          val = case type
-                when 'string' then value
-                when 'integer'
-                  @dict.val_has_name(tval) ?
-                  @dict.val_name(tval, value.unpack("N")[0]) :
-                    value.unpack("N")[0]
-                when 'ipaddr' then inet_ntoa(value.unpack("N")[0])
-                when 'time' then value.unpack("N")[0]
-                when 'date' then value.unpack("N")[0]
-                when 'octets' then value
-                else raise "Unknown attribute type found: #{type}"
-                end
-          set_attr(@dict.attr_name(tval), val)
+          unless type.nil?
+            val = case type
+                  when 'string' then value
+                  when 'integer'
+                    @dict.val_has_name(tval) ?
+                    @dict.val_name(tval, value.unpack("N")[0]) :
+                      value.unpack("N")[0]
+                  when 'ipaddr' then inet_ntoa(value.unpack("N")[0])
+                  when 'time' then value.unpack("N")[0]
+                  when 'date' then value.unpack("N")[0]
+                  when 'octets' then value
+                  else raise "Unknown attribute type found: #{type}"
+                  end
+            set_attr(@dict.attr_name(tval), val)
+          end
         end
         attrdat[0, length] = ""
       end

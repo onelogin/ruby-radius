@@ -145,6 +145,7 @@ VALUE                Login-Service                PortMaster                3
 
 VALUE                Acct-Status-Type        Start                        1
 VALUE                Acct-Status-Type        Stop                        2
+VALUE                Acct-Status-Type        Interim-Update              3
 
 #        Authentication Types
 

@@ -248,3 +248,41 @@ VENDORATTR  14823       Aruba-Port-Id                           7       string
 VENDORATTR  14823       Aruba-Template-User                     8       string
 VENDORATTR  14823       Aruba-Named-User-Vlan                   9       string
 VENDORATTR  14823       Aruba-AP-Group                          10      string
+
+
+# Symbol attributes
+
+# Access request attribute's
+VENDORATTR 388	Symbol-Service-Type		1	integer
+# SSID in the access request
+VENDORATTR 388	Symbol-Wlan-Index		2	string
+# Wlan index in the Access Request, deprecated in WING 5.0, this check item is replaced by VSA - Symbol-Allowed-ESSID
+VENDORATTR 388	Symbol-Attr-4		4	string
+VENDORATTR 388	Symbol-Allowed-ESSID    3	string
+# Reply Attribute which sends the expiry date & time for the guest users
+VENDORATTR 388	Guest-User-Expiry-Date-Time		7	string
+# Reply Attribute which sends the start date & time for the guest users
+VENDORATTR 388	Guest-User-Start-Date-Time		8	string
+# Rate Limit Parameters
+VENDORATTR 388	Symbol-Downlink-Limit-Kbps		10	integer
+VENDORATTR 388	Symbol-Uplink-Limit-Kbps		11	integer
+# User group name
+VENDORATTR 388	Symbol-User-Group		12	string
+VENDORATTR 388	Symbol-User-Device-Type		13	string
+VENDORATTR 388	Symbol-User-OS			14	string
+VENDORATTR 388	Symbol-User-Browser		15	string
+VENDORATTR 388	Symbol-Login-Service		100	integer
+
+# Aruba attributes
+
+VENDORATTR 14823 Aruba-User-Role 1 String
+VENDORATTR 14823 Aruba-User-Vlan 2 Integer
+VENDORATTR 14823 Aruba-Priv-Admin-User 3 Integer
+VENDORATTR 14823 Aruba-Admin-Role 4 String
+VENDORATTR 14823 Aruba-Essid-Name 5 String
+VENDORATTR 14823 Aruba-Location-Id 6 String
+VENDORATTR 14823 Aruba-Port-Id 7 String
+VENDORATTR 14823 Aruba-Template-User 8 String
+VENDORATTR 14823 Aruba-Named-User-Vlan 9 String
+VENDORATTR 14823 Aruba-AP-Group 10 String
+VENDORATTR 14823 Aruba-Framed-IPv6-Address 11 String

@@ -349,7 +349,7 @@ module Radius
     # +name+:: The name of the attribute to unset
     def unset_vsattr(vendorid, name)
       return if @vsattributes[vendorid] == nil
-      @vsattributes[name] = nil
+      @vsattributes[vendorid][name] = nil
     end
 
     # Undefines all vendor-specific attributes.

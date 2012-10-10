@@ -74,6 +74,7 @@ ATTRIBUTE        Acct-Session-Time        46        integer
 ATTRIBUTE        Acct-Input-Packets              47     integer
 ATTRIBUTE        Acct-Ouput-Packets              48     integer
 ATTRIBUTE        Acct-Terminate-Cause        49        integer
+ATTRIBUTE      	Event-Timestamp		         	55       	date
 ATTRIBUTE        NAS-Port-Type                61        integer
 ATTRIBUTE        Port-Limit                62        integer
 

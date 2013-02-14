@@ -206,10 +206,10 @@ module Radius
         'Accounting-Response' => 5,
         'Access-Challenge' => 11,
         'Status-Server' => 12,
-        'Status-Client' => 13 }
+        'Status-Client' => 13
+      }
       attstr = ""
-      each {
-        |attr, value|
+      each do |attr, value|
         anum = @dict.attr_num(attr)
         val = case @dict.attr_type(attr)
               when "string" then value
@@ -224,11 +224,10 @@ module Radius
                 next
               end
         attstr += [@dict.attr_num(attr), val.length + 2, val].pack(p_attr)
-      }
+      end
 
       # Pack vendor-specific attributes
-      each_vsa {
-        |vendor, attr, datum|
+      each_vsa do |vendor, attr, datum|
         code = @dict.vsattr_num(vendor, attr)
         vval = case @dict.vsattr_type(vendor, attr)
                when "string" then datum
@@ -252,7 +251,7 @@ module Radius
             @dict.vsattr_num(vendor, attr), vval.length + 2,
             vval].pack(p_vsa)
         end
-      }
+      end
       return([codes[@code], @identifier, attstr.length + hdrlen,
           @authenticator, attstr].pack(p_hdr))
     end
@@ -483,9 +482,9 @@ module Radius
       str = "RAD-Code = #{@code}\n"
       str += "RAD-Identifier = #{@identifier}\n"
       str += "RAD-Authenticator = #{[@authenticator].pack('m')}"
-      each { |attr, val|
+      each do |attr, val|
         str += "#{attr} = #{val}\n"
-      }
+      end
 
       each_vsa do |vendorid, vsaname, val|
         str += "Vendor-Id: #{vendorid} -- #{vsaname} = #{val}\n"

@@ -385,17 +385,11 @@ module Radius
     # returns a new string that is the xor of str1 and str2.  The
     # two strings must be the same length.
     def xor_str(str1, str2)
-      i = 0
-      newstr = ""
-      byte_itr = str2.each_byte
-      str1.each_byte do |c1|
-        c2 = byte_itr.next
-        newstr = newstr << (c1 ^ c2)
-        i = i+1
-      end
-      return newstr
-    end
+      raise RuntimeError unless str1.size == str2.size
 
+      memo = ''.encode('US-ASCII')
+      str1.bytes.zip(str2.bytes).map {|c1, c2| c1 ^ c2 }.reduce(memo) {|str, i| str << i }
+    end
 
     public
 

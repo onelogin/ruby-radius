@@ -1,8 +1,8 @@
 Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
   s.name        = 'ruby-radius'
-  s.version     = 1.0
-  s.summary     = ""
+  s.version     = 1.1
+  s.summary     = "A ruby implementation of an RFC 2139 compliant radius client"
   s.description = ""
   s.authors     = ["Rafael 'Dido' Sevilla"]
 

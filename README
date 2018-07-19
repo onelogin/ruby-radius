@@ -1,4 +1,6 @@
-= Ruby-Radius - RADIUS interface for Ruby
+# Ruby-Radius
+------
+## RADIUS interface for Ruby
 
 This Ruby module provides an interface to the RADIUS protocol.  It
 provides these two classes:
@@ -8,11 +10,6 @@ provides these two classes:
 
 This module's API is based heavily on the Net::Radius Perl module
 created by Christopher Masto, Luis Munoz, and Ian Smith.
-
-== Installation
-
-Since the module is pure Ruby, to install this all that needs to be
-done is to run the 'install.rb' script.
 
 This package supports the use of vendor-specific attributes.  This
 type of attribute is defined in RFC 2138 and is used to support
@@ -34,4 +31,4 @@ License::  Copyright (c) 2002 Rafael R. Sevilla
 
 All of the test and example programs are placed in the public domain.
 
-$Id: README 2 2006-12-17 06:16:21Z dido $
+Additional contributions made by Brett Caudill to allow bundler installation.

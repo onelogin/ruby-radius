@@ -21,7 +21,7 @@
 # Author:: Rafael R. Sevilla (mailto:dido@imperium.ph)
 # Copyright:: Copyright (c) 2002 Rafael R. Sevilla
 # License:: GNU Lesser General Public License
-# $Id: dictionary.rb 2 2006-12-17 06:16:21Z dido $
+# $Id$
 #
 
 module Radius
@@ -33,10 +33,10 @@ module Radius
   # This class is patterned after the Net::Radius::Dictionary Perl
   # module written by Christopher Masto (mailto:chris@netmonger.net)
   # and Luis E. Munoz (mailto:lem@cantv.net)
-  class Dictionary
+  class Dict
     # Initialize all the instance variables.  All variables
     # start out as empty versions of the appropriate type.
-    def initialize(dictionary_path = nil)
+    def initialize
       @attr = Hash.new(nil)
       @rattr = Array.new
       @val = Array.new
@@ -45,8 +45,6 @@ module Radius
       @rvsattr = Array.new
       @vsaval = Array.new
       @rvsaval = Array.new
-      dictionary_path = File.dirname(__FILE__) + '/../../dictionary' unless dictionary_path
-      File.open(dictionary_path, 'r') {|f| read(f)}
     end
 
     # Parse a dictionary file from an IO object and learn the
@@ -64,69 +62,69 @@ module Radius
     # printed to stderr.
     def read(fp)
       fp.each_line {
-        |line|
+          |line|
         next if line =~ /^\#/	# discard comments
         next if (sl = line.split(/\s+/)) == []
         case sl[0].upcase
-        when "ATTRIBUTE"
-          @attr[sl[1]] = [sl[2].to_i, sl[3]] if (@attr[sl[1]] == nil)
-          @rattr[sl[2].to_i] = [sl[1], sl[3]] if (@rattr[sl[2].to_i] == nil)
-        when "VALUE"
-          if (@attr[sl[1]] == nil)
-            $stderr.print("Warning: value given for unknown attribute #{sl[1]}");
+          when "ATTRIBUTE"
+            @attr[sl[1]] = [sl[2].to_i, sl[3]] if (@attr[sl[1]] == nil)
+            @rattr[sl[2].to_i] = [sl[1], sl[3]] if (@rattr[sl[2].to_i] == nil)
+          when "VALUE"
+            if (@attr[sl[1]] == nil)
+              $stderr.print("Warning: value given for unknown attribute #{sl[1]}");
+            else
+              if (@val[@attr[sl[1]][0]] == nil)
+                @val[@attr[sl[1]][0]] = {}
+              end
+              if (@rval[@attr[sl[1]][0]] == nil)
+                @rval[@attr[sl[1]][0]] = []
+              end
+              if (@val[@attr[sl[1]][0]][sl[2]] == nil)
+                @val[@attr[sl[1]][0]][sl[2]] = sl[3].to_i
+              end
+              if (@rval[@attr[sl[1]][0]][sl[3].to_i] == nil)
+                @rval[@attr[sl[1]][0]][sl[3].to_i] = sl[2]
+              end
+            end
+          when "VENDORATTR"
+            sl[3] = Kernel::Integer(sl[3]) # this gets hex and octal
+            # values correctly
+            @vsattr[sl[1].to_i] = {} if (@vsattr[sl[1].to_i] == nil)
+            @rvsattr[sl[1].to_i] = {} if (@rvsattr[sl[1].to_i] == nil)
+
+            if (@vsattr[sl[1].to_i][sl[2]] == nil)
+              @vsattr[sl[1].to_i][sl[2]] = sl[3..4]
+            end
+
+            if (@rvsattr[sl[1].to_i][sl[3]] == nil)
+              @rvsattr[sl[1].to_i][sl[3]] = [sl[2], sl[4]]
+            end
+          when "VENDORVALUE"
+            sl[4] = Kernel::Integer(sl[4])
+            if (@vsattr[sl[1].to_i][sl[2]] == nil)
+              $stderr.print "Warning: vendor value for unknown vendor attribute #{sl[1]} found - ignored\n"
+            else
+              sl[1] = sl[1].to_i
+              @vsaval[sl[1]] = {} if @vsaval[sl[1].to_i] == nil
+              @rvsaval[sl[1]] = {} if @rvsaval[sl[1].to_i] == nil
+              if @vsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]] == nil
+                @vsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]] = {}
+              end
+
+              if @rvsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]] == nil
+                @rvsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]] = []
+              end
+
+              if @vsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]][sl[3]] == nil
+                @vsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]][sl[3]] = sl[4]
+              end
+
+              if @rvsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]][sl[4]] == nil
+                @rvsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]][sl[4]] = sl[3]
+              end
+            end
           else
-            if (@val[@attr[sl[1]][0]] == nil)
-              @val[@attr[sl[1]][0]] = {}
-            end
-            if (@rval[@attr[sl[1]][0]] == nil)
-              @rval[@attr[sl[1]][0]] = []
-            end
-            if (@val[@attr[sl[1]][0]][sl[2]] == nil)
-              @val[@attr[sl[1]][0]][sl[2]] = sl[3].to_i
-            end
-            if (@rval[@attr[sl[1]][0]][sl[3].to_i] == nil)
-              @rval[@attr[sl[1]][0]][sl[3].to_i] = sl[2]
-            end
-          end
-        when "VENDORATTR"
-          sl[3] = Kernel::Integer(sl[3]) # this gets hex and octal
-          # values correctly
-          @vsattr[sl[1].to_i] = {} if (@vsattr[sl[1].to_i] == nil)
-          @rvsattr[sl[1].to_i] = {} if (@rvsattr[sl[1].to_i] == nil)
-
-          if (@vsattr[sl[1].to_i][sl[2]] == nil)
-            @vsattr[sl[1].to_i][sl[2]] = sl[3..4]
-          end
-
-          if (@rvsattr[sl[1].to_i][sl[3]] == nil)
-            @rvsattr[sl[1].to_i][sl[3]] = [sl[2], sl[4]]
-          end
-        when "VENDORVALUE"
-          sl[4] = Kernel::Integer(sl[4])
-          if (@vsattr[sl[1].to_i][sl[2]] == nil)
-            $stderr.print "Warning: vendor value for unknown vendor attribute #{sl[1]} found - ignored\n"
-          else
-            sl[1] = sl[1].to_i
-            @vsaval[sl[1]] = {} if @vsaval[sl[1].to_i] == nil
-            @rvsaval[sl[1]] = {} if @rvsaval[sl[1].to_i] == nil
-            if @vsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]] == nil
-              @vsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]] = {}
-            end
-
-            if @rvsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]] == nil
-              @rvsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]] = []
-            end
-
-            if @vsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]][sl[3]] == nil
-              @vsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]][sl[3]] = sl[4]
-            end
-
-            if @rvsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]][sl[4]] == nil
-              @rvsaval[sl[1]][@vsattr[sl[1]][sl[2]][0]][sl[4]] = sl[3]
-            end
-          end
-        else
-          $stderr.print "Warning: Weird dictionary line: #{line}\n"
+            $stderr.print "Warning: Weird dictionary line: #{line}\n"
         end
       }
     end
@@ -281,7 +279,11 @@ module Radius
     # =====Return Value
     # The name of the vendor-specific attribute
     def vsattr_name(vendorid, code)
-      return(@rvsattr[vendorid][code][0])
+      begin
+        return(@rvsattr[vendorid][code][0])
+      rescue
+        return "unknown_#{vendorid}_#{code}"
+      end
     end
 
     # Obtains the type of a vendor-specific attribute given the
@@ -293,7 +295,11 @@ module Radius
     # =====Return Value
     # The type of the vendor-specific attribute
     def vsattr_numtype(vendorid, code)
-      return(@rvsattr[vendorid][code][1]) rescue nil
+      begin
+        return(@rvsattr[vendorid][code][1])
+      rescue
+        return "string"
+      end
     end
 
     # Determines whether the vendor-specific attibute with the

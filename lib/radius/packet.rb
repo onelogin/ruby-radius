@@ -22,7 +22,7 @@
 # Copyright:: Copyright (c) 2002 Rafael R. Sevilla
 # License:: GNU Lesser General Public License
 #
-# $Id: packet.rb 2 2006-12-17 06:16:21Z dido $
+# $Id$
 #
 
 module Radius
@@ -38,7 +38,6 @@ module Radius
   # This class is patterned after the Net::Radius::Packet Perl
   # module written by Christopher Masto (mailto:chris@netmonger.net).
   require 'digest/md5'
-  require 'radius/dictionary'
 
   class Packet
     # The code field is returned as a string.  As of this writing, the
@@ -69,7 +68,8 @@ module Radius
     # writer.
     attr_writer :authenticator
 
-    attr_reader :attributes
+    # The length of the packet
+    attr_reader :length
 
     # To initialize the object, pass a Radius::Dictionary object to it.
     def initialize(dict)
@@ -84,14 +84,19 @@ module Radius
     def inet_aton(hostname)
       if (hostname =~ /([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)/)
         return((($1.to_i & 0xff) << 24) + (($2.to_i & 0xff) << 16) +
-          (($3.to_i & 0xff) << 8) + (($4.to_i & 0xff)))
+            (($3.to_i & 0xff) << 8) + (($4.to_i & 0xff)))
       end
       return(0)
     end
 
     def inet_ntoa(iaddr)
+      # If iaddr is a weird binary string, like I saw with Mikrotik, then
+      # this will yield 0 and inet_ntoa() will return 0.0.0.0.  It'll have to
+      # do for now.
+      iaddr = iaddr.to_i
+
       return(sprintf("%d.%d.%d.%d", (iaddr >> 24) & 0xff, (iaddr >> 16) & 0xff,
-          (iaddr >> 8) & 0xff, (iaddr) & 0xff))
+                     (iaddr >> 8) & 0xff, (iaddr) & 0xff))
     end
 
     public
@@ -108,27 +113,28 @@ module Radius
     def unpack(data)
       p_hdr = "CCna16a*"
       rcodes = {
-        1 => 'Access-Request',
-        2  => 'Access-Accept',
-        3  => 'Access-Reject',
-        4  => 'Accounting-Request',
-        5  => 'Accounting-Response',
-        11 => 'Access-Challenge',
-        12 => 'Status-Server',
-        13 => 'Status-Client'
+          1 => 'Access-Request',
+          2  => 'Access-Accept',
+          3  => 'Access-Reject',
+          4  => 'Accounting-Request',
+          5  => 'Accounting-Response',
+          11 => 'Access-Challenge',
+          12 => 'Status-Server',
+          13 => 'Status-Client'
       }
 
       @code, @identifier, len, @authenticator, attrdat = data.unpack(p_hdr)
       @code = rcodes[@code]
+      @length = len
 
       unset_all
 
-      while attrdat.length > 0
+      while (attrdat.length > 0)
         length = attrdat.unpack("xC")[0].to_i
         tval, value = attrdat.unpack("Cxa#{length-2}")
 
         tval = tval.to_i
-        if tval == VSA_TYPE
+        if (tval == VSA_TYPE)
           # handle vendor-specific attributes
           vid, vtype, vlength = value.unpack("NCC")
           # XXX - How do we calculate the length of the VSA?  It's not
@@ -145,38 +151,37 @@ module Radius
             vvalue = value.unpack("xxxxxxa#{vlength - 2}")[0]
           end
           type = @dict.vsattr_numtype(vid, vtype)
-          if type != nil
-            val = case type
+          if type == nil
+            raise "Garbled vendor-specific attribute #{vid}/#{vtype}"
+          end
+          val = case type
                   when 'string' then vvalue
                   when 'integer'
                     (@dict.vsaval_has_name(vid, vtype)) ?
-                    @dict.vsaval_name(vid, vtype, vvalue.unpack("N")[0]) :
-                      vvalue.unpack("N")[0]
+                        @dict.vsaval_name(vid, vtype, vvalue.unpack("N")[0]) :
+                        vvalue.unpack("N")[0]
                   when 'ipaddr' then inet_ntoa(vvalue)
                   when 'time' then vvalue.unpack("N")[0]
                   when 'date' then vvalue.unpack("N")[0]
                   else
                     raise "Unknown VSattribute type found: #{vtype}"
-                  end
-            set_vsattr(vid, @dict.vsattr_name(vid, vtype), val)
-          end
+                end
+          set_vsattr(vid, @dict.vsattr_name(vid, vtype), val)
         else
           type = @dict.attr_numtype(tval)
-          unless type.nil?
-            val = case type
+          raise "Garbled attribute #{tval}" if (type == nil)
+          val = case type
                   when 'string' then value
                   when 'integer'
                     @dict.val_has_name(tval) ?
-                    @dict.val_name(tval, value.unpack("N")[0]) :
-                      value.unpack("N")[0]
+                        @dict.val_name(tval, value.unpack("N")[0]) :
+                        value.unpack("N")[0]
                   when 'ipaddr' then inet_ntoa(value.unpack("N")[0])
                   when 'time' then value.unpack("N")[0]
                   when 'date' then value.unpack("N")[0]
-                  when 'octets' then value
                   else raise "Unknown attribute type found: #{type}"
-                  end
-            set_attr(@dict.attr_name(tval), val)
-          end
+                end
+          set_attr(@dict.attr_name(tval), val)
         end
         attrdat[0, length] = ""
       end
@@ -199,69 +204,69 @@ module Radius
       p_vsa_3com = "CCNNa*"	# used by 3COM devices
 
       codes = {
-        'Access-Request' => 1,
-        'Access-Accept' => 2,
-        'Access-Reject' => 3,
-        'Accounting-Request' => 4,
-        'Accounting-Response' => 5,
-        'Access-Challenge' => 11,
-        'Status-Server' => 12,
-        'Status-Client' => 13
-      }
+          'Access-Request' => 1,
+          'Access-Accept' => 2,
+          'Access-Reject' => 3,
+          'Accounting-Request' => 4,
+          'Accounting-Response' => 5,
+          'Access-Challenge' => 11,
+          'Status-Server' => 12,
+          'Status-Client' => 13 }
       attstr = ""
-      each do |attr, value|
+      each {
+          |attr, value|
         anum = @dict.attr_num(attr)
         val = case @dict.attr_type(attr)
-              when "string" then value
-              when "integer"
-                [@dict.attr_has_val(anum) ?
-            @dict.val_num(anum, value) ? @dict.val_num(anum, value) : value : value].pack("N")
-              when "ipaddr" then [inet_aton(value)].pack("N")
-              when "date" then [value].pack("N")
-              when "time" then [value].pack("N")
-              when "octets" then value
-              else
-                next
+                when "string" then value
+                when "integer"
+                  [@dict.attr_has_val(anum) ?
+                       @dict.val_num(anum, value) : value].pack("N")
+                when "ipaddr" then [inet_aton(value)].pack("N")
+                when "date" then [value].pack("N")
+                when "time" then [value].pack("N")
+                else
+                  next
               end
         attstr += [@dict.attr_num(attr), val.length + 2, val].pack(p_attr)
-      end
+      }
 
       # Pack vendor-specific attributes
-      each_vsa do |vendor, attr, datum|
+      each_vsa {
+          |vendor, attr, datum|
         code = @dict.vsattr_num(vendor, attr)
         vval = case @dict.vsattr_type(vendor, attr)
-               when "string" then datum
-               when "integer"
-                 @dict.vsattr_has_val(vendor.to_i, code) ?
-                 [@dict.vsaval_num(vendor, code, datum)].pack("N") :
-                   [datum].pack("N")
-               when "ipaddr" then inet_aton(datum)
-               when "time" then [datum].pack("N")
-               when "date" then [datum].pack("N")
-               when "octets" then value
-               else
-                 next
+                 when "string" then datum
+                 when "integer"
+                   @dict.vsattr_has_val(vendor.to_i, code) ?
+                       [@dict.vsaval_num(vendor, code, datum)].pack("N") :
+                       [datum].pack("N")
+                 when "ipaddr" then inet_aton(datum)
+                 when "time" then [datum].pack("N")
+                 when "date" then [datum].pack("N")
+                 else next
                end
         if vendor == 429
           # For 3COM devices
           attstr += [VSA_TYPE, vval.length + 10, vendor,
-            @dict.vsattr_num(vendor, attr), vval].pack(p_vsa_3com)
+                     @dict.vsattr_num(vendor, attr), vval].pack(p_vsa_3com)
         else
           attstr += [VSA_TYPE, vval.length + 8, vendor,
-            @dict.vsattr_num(vendor, attr), vval.length + 2,
-            vval].pack(p_vsa)
+                     @dict.vsattr_num(vendor, attr), vval.length + 2,
+                     vval].pack(p_vsa)
         end
-      end
+      }
+
       return([codes[@code], @identifier, attstr.length + hdrlen,
-          @authenticator, attstr].pack(p_hdr))
+              @authenticator, attstr].pack(p_hdr))
     end
 
     # This method is provided a block which will pass every
     # attribute-value pair currently available.
     def each
-      @attributes.each_pair do |key, value|
+      @attributes.each_pair {
+          |key, value|
         yield(key, value)
-      end
+      }
     end
 
     # The value of the named attribute in the object's internal state
@@ -296,32 +301,37 @@ module Radius
     # Undefines all attributes.
     #
     def unset_all_attr
-      each do |key, value|
+      each {
+          |key, value|
         unset_attr(key)
-      end
+      }
     end
 
     # This method will pass each vendor-specific attribute available
     # to a passed block.  The parameters to the block are the vendor
     # ID, the attribute name, and the attribute value.
     def each_vsa
-      @vsattributes.each_index do |vendorid|
+      @vsattributes.each_index {
+          |vendorid|
         if @vsattributes[vendorid] != nil
-          @vsattributes[vendorid].each_pair do |key, value|
-            value.each do |val|
+          @vsattributes[vendorid].each_pair {
+              |key, value|
+            value.each {
+                |val|
               yield(vendorid, key, val)
-            end
-          end
+            }
+          }
         end
-      end
+      }
     end
 
     # This method is an iterator that passes each vendor-specific
     # attribute associated with a vendor ID.
     def each_vsaval(vendorid)
-      @vsattributes[vendorid].each_pair do |key, value|
+      @vsattributes[vendorid].each_pair {
+          |key, value|
         yield(key, value)
-      end
+      }
     end
 
     # Changes the value of the named vendor-specific attribute.
@@ -348,15 +358,16 @@ module Radius
     # +name+:: The name of the attribute to unset
     def unset_vsattr(vendorid, name)
       return if @vsattributes[vendorid] == nil
-      @vsattributes[vendorid][name] = nil
+      @vsattributes[name] = nil
     end
 
     # Undefines all vendor-specific attributes.
     #
     def unset_all_vsattr
-      each_vsa do |vendor, attr, datum|
+      each_vsa {
+          |vendor, attr, datum|
         unset_vsattr(vendor, attr)
-      end
+      }
     end
 
     # Undefines all regular and vendor-specific attributes
@@ -385,6 +396,8 @@ module Radius
     # returns a new string that is the xor of str1 and str2.  The
     # two strings must be the same length.
     def xor_str(str1, str2)
+      # Code update came from
+      # https://github.com/retailnext/ruby-radius/blob/master/lib/radius/packet.rb
       raise RuntimeError unless str1.size == str2.size
 
       memo = ''.encode('US-ASCII')
@@ -402,36 +415,18 @@ module Radius
     # ====Return
     # The cleartext version of the User-Password.
     def password(secret)
-      pwdin = attr("User-Password") || attr("Password")
+      pwdin = attr("User-Password") || attr("Password") || ''
       pwdout = ""
       lastround = @authenticator
-
-      0.step(pwdin.length-1, 16) do |i|
-        pwdout = xor_str(pwdin[i, 16],
-          Digest::MD5.digest(secret + lastround))
+      0.step(pwdin.length-1, 16) {
+          |i|
+        pwdout += xor_str(pwdin[i, 16],
+                          Digest::MD5.digest(secret + lastround))
         lastround = pwdin[i, 16]
-      end
-
-      pwdout.sub(/\000+$/, "") if pwdout
+      }
+      pwdout.sub!(/\000+$/, "") if pwdout
       pwdout[length.pwdin, -1] = "" unless (pwdout.length <= pwdin.length)
       return(pwdout)
-    end
-
-    def check_password(given, secret)
-      given += "\000" * (15 - (15 + given.length) % 16)
-
-      pwdout = "".force_encoding("ASCII-8BIT")
-      lastround = @authenticator
-
-      0.step(given.length() -1, 16) do |i|
-        lastround = xor_str(given[i, 16], Digest::MD5.digest(secret + lastround))
-        pwdout += lastround.force_encoding("ASCII-8BIT")
-      end
-
-      pwdout.sub(/\000+$/, "") if pwdout
-      actual_password = @attributes["User-Password"].force_encoding("ASCII-8BIT")
-
-      pwdout == actual_password
     end
 
     # The RADIUS User-Password attribute is encoded with a shared
@@ -442,21 +437,20 @@ module Radius
     # on using the 'Password' attribute instead.
     #
     # ====Parameters
-    # +pwdin++:: The password to encrypt
+    # +passwd+:: The password to encrypt
     # +secret+:: The shared secret of the RADIUS system
     #
     def set_password(pwdin, secret)
       lastround = @authenticator
       pwdout = ""
-
       # pad to 16n bytes
-      pwdin += "\000" * (15 - (15 + pwdin.length) % 16)
-
-      0.step(pwdin.length-1, 16) do |i|
-        lastround = xor_str(pwdin[i, 16], Digest::MD5.digest(secret + lastround))
+      pwdin += "\000" * (15-(15 + pwdin.length) % 16)
+      0.step(pwdin.length-1, 16) {
+          |i|
+        lastround = xor_str(pwdin[i, 16],
+                            Digest::MD5.digest(secret + lastround))
         pwdout += lastround
-      end
-
+      }
       set_attr("User-Password", pwdout)
       return(pwdout)
     end
@@ -472,17 +466,22 @@ module Radius
     # ====Return
     # The string representation of the RADIUS packet.
     #
-    def to_s
+    def to_s(secret)
       str = "RAD-Code = #{@code}\n"
       str += "RAD-Identifier = #{@identifier}\n"
       str += "RAD-Authenticator = #{[@authenticator].pack('m')}"
-      each do |attr, val|
+      each {
+          |attr, val|
+        if (attr == 'User-Password')
+          val = (secret == nil) ? "(hidden)" : password(secret)
+        end
         str += "#{attr} = #{val}\n"
-      end
+      }
 
-      each_vsa do |vendorid, vsaname, val|
+      each_vsa {
+          |vendorid, vsaname, val|
         str += "Vendor-Id: #{vendorid} -- #{vsaname} = #{val}\n"
-      end
+      }
       return(str)
     end
 
@@ -499,6 +498,78 @@ module Radius
       new = String.new(packed_packet)
       new[4, 16] = Digest::MD5.digest(packed_packet + secret)
       return(new)
+    end
+
+    # RFC 2865, Page 15:
+    #
+    # "The value of the Authenticator field in Access-Accept, Access-
+    # Reject, and Access-Challenge packets is called the Response
+    # Authenticator, and contains a one-way MD5 hash calculated over
+    # a stream of octets consisting of: the RADIUS packet, beginning
+    # with the Code field, including the Identifier, the Length, the
+    # Request Authenticator field from the Access-Request packet, and
+    # the response Attributes, followed by the shared secret.  That
+    # is, ResponseAuth =
+    # MD5(Code+ID+Length+RequestAuth+Attributes+Secret) where +
+    # denotes concatenation."
+    #
+    # Given a RADIUS access request packet and a shared secret, return
+    # a string suitable for the Authenticator field of Access-Accept,
+    # Access-Reject, and Access-Challenge packets.
+    #
+    # ====Parameters
+    # +request+:: A Radius::Packet object to which we are generating a
+    # response
+    # +secret+:: The shared secret of the RADIUS system.
+    # ====Return value
+    # A string suitable for the Authenticator field of Access-Accept,
+    # Access-Reject, and Access-Challenge packets.
+    def access_response_authenticator(request, secret)
+      self_packed = pack
+      self_packed[4, 16] = request.authenticator
+
+      Digest::MD5.digest(self_packed + secret)
+    end
+
+    # Given a RADIUS access request packet and a shared secret, set the
+    # Authenticator field of the current RADIUS access response packet to
+    # the correct value.
+    def set_access_response_authenticator!(request, secret)
+      case code
+        when /Access-*/
+          self.authenticator = access_response_authenticator(request, secret)
+        else
+          raise ArgumentError.new("This Authenticator is only valid for Access-Accept, Accept-Reject, or Access-Challenge packets")
+      end
+    end
+
+    # This code is largely copied from bklang's version of the
+    # Ruby-Radius project found here:
+    #
+    # https://github.com/bklang/Ruby-Radius.git
+    def generate_random_authenticator
+      # According to RFC 2138:
+      # In Access-Request Packets, the Authenticator value is a 16 octet
+      # random number, called the Request Authenticator. The value SHOULD
+      # be unpredictable and unique over the lifetime of a secret (the
+      # password shared between the client and the RADIUS server)
+
+      @auth = nil
+
+      # Get authenticator data from /dev/urandom if possible
+      if (File.exist?("/dev/urandom"))
+        File.open("/dev/urandom") { |urandom|
+          @auth = urandom.read(16)
+        }
+      else
+        # use the Kernel:rand method. This is quite probably not
+        # as secure as using /dev/urandom, be wary...
+        @auth = [rand(65536), rand(65536), rand(65536),
+                 rand(65536), rand(65536), rand(65536), rand(65536),
+                 rand(65536)].pack("n8")
+      end
+
+      @auth
     end
   end
 end
